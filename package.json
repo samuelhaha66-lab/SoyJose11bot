@@ -1,0 +1,19 @@
+{
+  "name": "telegram-tts-translate-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot with Text-to-Speech and Translation features",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.61.0",
+    "dotenv": "^16.0.3",
+    "axios": "^1.4.0",
+    "google-tts-api": "^2.0.2",
+    "translate": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
