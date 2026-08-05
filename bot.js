@@ -1,8 +1,7 @@
-const TelegramBot = require('node-telegram-bot-api');
-const dotenv = require('dotenv');
-const axios = require('axios');
-const translate = require('translate');
-const gtts = require('google-tts-api');
+import TelegramBot from 'node-telegram-bot-api';
+import dotenv from 'dotenv';
+import translate from '@vitalets/google-translate-api';
+import gtts from 'google-tts-api';
 
 dotenv.config();
 
@@ -40,14 +39,14 @@ const helpMessage = `
 🌍 **Translator:**
 1. Send /translate
 2. Type the text you want to translate
-3. Choose the target language (e.g., 'es', 'fr', 'de')
+3. Choose the target language (e.g., 'es' for Spanish, 'fr' for French)
 4. I'll send you the translation
 
-**Supported languages for translation:**
-en (English), es (Spanish), fr (French), de (German), it (Italian), pt (Portuguese), ru (Russian), ja (Japanese), ko (Korean), zh (Chinese)
+**Supported languages:**
+en (English), es (Spanish), fr (French), de (German), it (Italian), 
+pt (Portuguese), ru (Russian), ja (Japanese), ko (Korean), zh (Chinese)
 
-**Supported languages for TTS:**
-English, Spanish, French, German, Italian, Portuguese, Russian, Japanese, Korean, Chinese
+**TTS supports:** English, Spanish, French, German, Italian, Portuguese, Russian, Japanese, Korean, Chinese
 `;
 
 // Start command
@@ -66,7 +65,7 @@ bot.onText(/\/help/, (msg) => {
 bot.onText(/\/tts/, (msg) => {
   const chatId = msg.chat.id;
   userStates[chatId] = { action: 'tts' };
-  bot.sendMessage(chatId, '🔊 Please send me the text you want to convert to speech:');
+  bot.sendMessage(chatId, '🔊 Please send me the text you want to convert to speech (max 500 characters):');
 });
 
 // Translate command
@@ -93,7 +92,7 @@ bot.on('message', async (msg) => {
   } else if (userState.action === 'translate') {
     userState.textToTranslate = text;
     userState.action = 'translate_target';
-    bot.sendMessage(chatId, '🌍 Which language do you want to translate to?\n\nSend the language code (e.g., "es" for Spanish, "fr" for French, "de" for German):\n\nAvailable: en, es, fr, de, it, pt, ru, ja, ko, zh');
+    bot.sendMessage(chatId, '🌍 Which language do you want to translate to?\n\nSend the language code:\n• "es" for Spanish\n• "fr" for French\n• "de" for German\n• "it" for Italian\n• "pt" for Portuguese\n• "ru" for Russian\n• "ja" for Japanese\n• "ko" for Korean\n• "zh" for Chinese\n• "en" for English');
   } else if (userState.action === 'translate_target') {
     await handleTranslate(chatId, userState.textToTranslate, text);
     delete userStates[chatId];
@@ -131,7 +130,7 @@ async function handleTTS(chatId, text) {
       host: 'https://translate.google.com',
     });
 
-    // Send audio as voice message
+    // Send as voice message
     await bot.sendVoice(chatId, url, {
       caption: '🔊 Here is your text-to-speech audio!'
     });
@@ -149,22 +148,16 @@ async function handleTranslate(chatId, text, targetLang) {
       return bot.sendMessage(chatId, '❌ Please provide both text and target language.');
     }
 
-    // Detect source language
-    const detectedLang = await detectLanguage(text);
+    // Translate using Google Translate API
+    const result = await translate(text, { to: targetLang });
     
-    // Translate
-    const translation = await translate(text, {
-      from: detectedLang,
-      to: targetLang
-    });
-
     const response = `
 🌍 **Translation Complete!**
 
 **Original:** ${text}
-**Detected Language:** ${getLanguageName(detectedLang)}
+**Detected Language:** ${getLanguageName(result.from.language.iso)}
 **Target Language:** ${getLanguageName(targetLang)}
-**Translation:** ${translation}
+**Translation:** ${result.text}
 `;
 
     bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
@@ -175,13 +168,11 @@ async function handleTranslate(chatId, text, targetLang) {
   }
 }
 
-// Detect language using translate library
+// Detect language function
 async function detectLanguage(text) {
   try {
-    const detection = await translate(text);
-    // The translate library returns the translated text, we need to detect language differently
-    // Using a simple approach - you can use a language detection library
-    return 'en'; // Default to English
+    const result = await translate(text, { to: 'en' });
+    return result.from.language.iso;
   } catch (error) {
     return 'en';
   }
@@ -199,7 +190,9 @@ function getLanguageName(langCode) {
     'ru': 'Russian',
     'ja': 'Japanese',
     'ko': 'Korean',
-    'zh': 'Chinese'
+    'zh': 'Chinese',
+    'zh-CN': 'Chinese (Simplified)',
+    'zh-TW': 'Chinese (Traditional)'
   };
   return languages[langCode] || langCode;
 }
