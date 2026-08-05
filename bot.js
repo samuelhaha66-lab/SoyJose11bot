@@ -1,7 +1,7 @@
-import TelegramBot from 'node-telegram-bot-api';
-import dotenv from 'dotenv';
-import translate from '@vitalets/google-translate-api';
-import gtts from 'google-tts-api';
+const TelegramBot = require('node-telegram-bot-api');
+const dotenv = require('dotenv');
+const translate = require('translation-google');
+const gtts = require('google-tts-api');
 
 dotenv.config();
 
@@ -148,7 +148,7 @@ async function handleTranslate(chatId, text, targetLang) {
       return bot.sendMessage(chatId, '❌ Please provide both text and target language.');
     }
 
-    // Translate using Google Translate API
+    // Translate using Google Translate
     const result = await translate(text, { to: targetLang });
     
     const response = `
