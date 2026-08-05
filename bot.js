@@ -1,7 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const dotenv = require('dotenv');
-const translate = require('translation-google');
 const gtts = require('google-tts-api');
+const axios = require('axios');
 
 dotenv.config();
 
@@ -141,38 +141,57 @@ async function handleTTS(chatId, text) {
   }
 }
 
-// Handle Translation
+// Handle Translation using Google Translate API (via axios)
 async function handleTranslate(chatId, text, targetLang) {
   try {
     if (!text || !targetLang) {
       return bot.sendMessage(chatId, '❌ Please provide both text and target language.');
     }
 
-    // Translate using Google Translate
-    const result = await translate(text, { to: targetLang });
+    // Use Google Translate API
+    const response = await axios.get('https://translate.googleapis.com/translate_a/single', {
+      params: {
+        client: 'gtx',
+        sl: 'auto',
+        tl: targetLang,
+        dt: 't',
+        q: text
+      }
+    });
+
+    const translation = response.data[0][0][0];
+    const detectedLang = response.data[2];
     
-    const response = `
+    const responseMessage = `
 🌍 **Translation Complete!**
 
 **Original:** ${text}
-**Detected Language:** ${getLanguageName(result.from.language.iso)}
+**Detected Language:** ${getLanguageName(detectedLang)}
 **Target Language:** ${getLanguageName(targetLang)}
-**Translation:** ${result.text}
+**Translation:** ${translation}
 `;
 
-    bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
+    bot.sendMessage(chatId, responseMessage, { parse_mode: 'Markdown' });
 
   } catch (error) {
     console.error('Translation Error:', error);
-    bot.sendMessage(chatId, '❌ Sorry, I couldn\'t translate the text. Please check the language code and try again.');
+    bot.sendMessage(chatId, '❌ Sorry, I couldn\'t translate the text. Please check the language code and try again.\n\nExample: "es" for Spanish, "fr" for French, "de" for German');
   }
 }
 
 // Detect language function
 async function detectLanguage(text) {
   try {
-    const result = await translate(text, { to: 'en' });
-    return result.from.language.iso;
+    const response = await axios.get('https://translate.googleapis.com/translate_a/single', {
+      params: {
+        client: 'gtx',
+        sl: 'auto',
+        tl: 'en',
+        dt: 't',
+        q: text
+      }
+    });
+    return response.data[2] || 'en';
   } catch (error) {
     return 'en';
   }
