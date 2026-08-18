@@ -6,7 +6,26 @@ const axios = require('axios');
 dotenv.config();
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
-const bot = new TelegramBot(token, { polling: true });
+
+// Check if token exists
+if (!token) {
+  console.error('❌ ERROR: TELEGRAM_BOT_TOKEN is not set in environment variables!');
+  console.error('Please add TELEGRAM_BOT_TOKEN to your .env file or Railway variables.');
+  process.exit(1);
+}
+
+console.log('🤖 Starting bot with token:', token.substring(0, 10) + '...');
+
+// Create bot with error handling
+const bot = new TelegramBot(token, { 
+  polling: {
+    interval: 300,
+    autoStart: true,
+    params: {
+      timeout: 10
+    }
+  }
+});
 
 // Store user states
 const userStates = {};
@@ -216,9 +235,18 @@ function getLanguageName(langCode) {
   return languages[langCode] || langCode;
 }
 
-// Error handling
+// Error handling for polling
+bot.on('polling_error', (error) => {
+  console.error('Polling Error:', error.message);
+  if (error.code === 'ETELEGRAM' && error.message.includes('404')) {
+    console.error('❌ INVALID TOKEN! Please check your TELEGRAM_BOT_TOKEN');
+    console.error('Get a new token from @BotFather on Telegram');
+  }
+});
+
+// General error handling
 bot.on('error', (error) => {
   console.error('Bot Error:', error);
 });
 
-console.log('🤖 @SoyJose11Bot is running...');
+console.log('✅ @SoyJose11Bot is running successfully!');
